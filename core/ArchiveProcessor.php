@@ -351,16 +351,21 @@ class ArchiveProcessor
             // see https://github.com/piwik/piwik/issues/4377
             $self = $this;
             $dataTable->filter(function ($table) use ($self, $columnsToRenameAfterAggregation) {
-                $self->renameColumnsAfterAggregation($table, $columnsToRenameAfterAggregation);
+                $columnsToRenameAfterAggregation = $self->getColumnsToRenameThatActuallyExistInTable($table, $columnsToRenameAfterAggregation);
+                if (!empty($columnsToRenameAfterAggregation)) {
+                    $self->renameColumnsAfterAggregation($table, $columnsToRenameAfterAggregation);
+                }
             });
         }
 
         $dataTable = $this->getAggregatedDataTableMap($dataTable, $columnsAggregationOperation);
 
         if (!$columnsRenamed) {
-            $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
+            $columnsToRenameAfterAggregation = $this->getColumnsToRenameThatActuallyExistInTable($dataTable, $columnsToRenameAfterAggregation);
         }
-        
+
+        $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
+
         return $dataTable;
     }
 
@@ -496,12 +501,45 @@ class ArchiveProcessor
     {
         // Rename columns after aggregation
         if (is_null($columnsToRenameAfterAggregation)) {
-            $columnsToRenameAfterAggregation = self::$columnsToRenameAfterAggregation;
+
+            $columnsToRenameAfterAggregation = $this->getColumnsToRenameThatActuallyExistInTable($table, self::$columnsToRenameAfterAggregation);
+
+            // no column to rename
+            if (empty($columnsToRenameAfterAggregation)) {
+                return;
+            }
         }
 
-        foreach ($columnsToRenameAfterAggregation as $oldName => $newName) {
-            $table->renameColumn($oldName, $newName);
+        foreach ($table->getRows() as $row) {
+            foreach ($columnsToRenameAfterAggregation as $oldName => $newName) {
+                $row->renameColumn($oldName, $newName);
+            }
+
+            $subTable = $row->getSubtable();
+            if ($subTable) {
+                $this->renameColumnsAfterAggregation($subTable, $columnsToRenameAfterAggregation);
+            }
         }
+    }
+
+    /**
+     * Note: public only for use in closure in PHP 5.3.
+     */
+    public function getColumnsToRenameThatActuallyExistInTable(DataTable $table, $columnsToRenameAfterAggregation)
+    {
+        $firstRow = $table->getFirstRow();
+        $lastRow  = $table->getLastRow();
+
+        // we want to rename only columns that actually exist in the table for fast performance. For example for already
+        // aggregated tables they will be already renamed. We need to do this only for day archives!
+        foreach ($columnsToRenameAfterAggregation as $oldName => $newName) {
+            if ($firstRow && !$firstRow->hasColumn($oldName) &&
+                $lastRow && !$lastRow->hasColumn($oldName)) {
+                unset($columnsToRenameAfterAggregation[$oldName]);
+            }
+        }
+
+        return $columnsToRenameAfterAggregation;
     }
 
     protected function getAggregatedNumericMetrics($columns, $operationToApply)
