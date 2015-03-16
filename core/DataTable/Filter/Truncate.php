@@ -90,11 +90,11 @@ class Truncate extends BaseFilter
      */
     private function addSummaryRow($table)
     {
-        $table->filter('Sort', array($this->columnToSortByBeforeTruncating, 'desc'));
-
         if ($table->getRowsCount() <= $this->truncateAfter + 1) {
             return;
         }
+
+        $table->filter('Sort', array($this->columnToSortByBeforeTruncating, 'desc'));
 
         $rows   = array_values($table->getRows());
         $count  = $table->getRowsCount();
