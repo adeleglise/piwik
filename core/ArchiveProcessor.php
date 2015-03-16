@@ -362,9 +362,10 @@ class ArchiveProcessor
 
         if (!$columnsRenamed) {
             $columnsToRenameAfterAggregation = $this->getColumnsToRenameThatActuallyExistInTable($dataTable, $columnsToRenameAfterAggregation);
+            if (!empty($columnsToRenameAfterAggregation)) {
+                $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
+            }
         }
-
-        $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
 
         return $dataTable;
     }
@@ -497,19 +498,8 @@ class ArchiveProcessor
     /**
      * Note: public only for use in closure in PHP 5.3.
      */
-    public function renameColumnsAfterAggregation(DataTable $table, $columnsToRenameAfterAggregation = null)
+    public function renameColumnsAfterAggregation(DataTable $table, $columnsToRenameAfterAggregation)
     {
-        // Rename columns after aggregation
-        if (is_null($columnsToRenameAfterAggregation)) {
-
-            $columnsToRenameAfterAggregation = $this->getColumnsToRenameThatActuallyExistInTable($table, self::$columnsToRenameAfterAggregation);
-
-            // no column to rename
-            if (empty($columnsToRenameAfterAggregation)) {
-                return;
-            }
-        }
-
         foreach ($table->getRows() as $row) {
             foreach ($columnsToRenameAfterAggregation as $oldName => $newName) {
                 $row->renameColumn($oldName, $newName);
@@ -527,6 +517,10 @@ class ArchiveProcessor
      */
     public function getColumnsToRenameThatActuallyExistInTable(DataTable $table, $columnsToRenameAfterAggregation)
     {
+        if (is_null($columnsToRenameAfterAggregation)) {
+            $columnsToRenameAfterAggregation = self::$columnsToRenameAfterAggregation;
+        }
+
         $firstRow = $table->getFirstRow();
         $lastRow  = $table->getLastRow();
 
@@ -562,7 +556,7 @@ class ArchiveProcessor
             $rowMetrics = new Row;
         }
         $this->enrichWithUniqueVisitorsMetric($rowMetrics);
-        $this->renameColumnsAfterAggregation($results);
+        $this->renameColumnsAfterAggregation($results, self::$columnsToRenameAfterAggregation);
 
         $metrics = $rowMetrics->getColumns();
 

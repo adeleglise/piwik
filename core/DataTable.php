@@ -567,8 +567,9 @@ class DataTable implements DataTableInterface, \IteratorAggregate, \ArrayAccess
             $row = $tableToSum->getFirstRow();
             $this->aggregateRowFromSimpleTable($row);
         } else {
+            $columnAggregationOps = $this->getMetadata(self::COLUMN_AGGREGATION_OPS_METADATA_NAME);
             foreach ($tableToSum->getRows() as $row) {
-                $this->aggregateRowWithLabel($row);
+                $this->aggregateRowWithLabel($row, $columnAggregationOps);
             }
         }
     }
@@ -1673,9 +1674,10 @@ class DataTable implements DataTableInterface, \IteratorAggregate, \ArrayAccess
      * $row must have a column "label". The $row will be summed to this table's row with the same label.
      *
      * @param $row
+     * @params null|array $columnAggregationOps
      * @throws \Exception
      */
-    protected function aggregateRowWithLabel(Row $row)
+    protected function aggregateRowWithLabel(Row $row, $columnAggregationOps)
     {
         $labelToLookFor = $row->getColumn('label');
         if ($labelToLookFor === false) {
@@ -1689,7 +1691,7 @@ class DataTable implements DataTableInterface, \IteratorAggregate, \ArrayAccess
                 $this->addRow($row);
             }
         } else {
-            $rowFound->sumRow($row, $copyMeta = true, $this->getMetadata(self::COLUMN_AGGREGATION_OPS_METADATA_NAME));
+            $rowFound->sumRow($row, $copyMeta = true, $columnAggregationOps);
 
             // if the row to add has a subtable whereas the current row doesn't
             // we simply add it (cloning the subtable)
@@ -1697,8 +1699,7 @@ class DataTable implements DataTableInterface, \IteratorAggregate, \ArrayAccess
             // then we have to recursively sum the subtables
             $subTable = $row->getSubtable();
             if ($subTable) {
-                $subTable->metadata[self::COLUMN_AGGREGATION_OPS_METADATA_NAME]
-                    = $this->getMetadata(self::COLUMN_AGGREGATION_OPS_METADATA_NAME);
+                $subTable->metadata[self::COLUMN_AGGREGATION_OPS_METADATA_NAME] = $columnAggregationOps;
                 $rowFound->sumSubtable($subTable);
             }
         }
