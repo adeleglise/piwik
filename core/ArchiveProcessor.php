@@ -351,20 +351,14 @@ class ArchiveProcessor
             // see https://github.com/piwik/piwik/issues/4377
             $self = $this;
             $dataTable->filter(function ($table) use ($self, $columnsToRenameAfterAggregation) {
-                $columnsToRenameAfterAggregation = $self->getColumnsToRenameThatActuallyExistInTable($table, $columnsToRenameAfterAggregation);
-                if (!empty($columnsToRenameAfterAggregation)) {
-                    $self->renameColumnsAfterAggregation($table, $columnsToRenameAfterAggregation);
-                }
+                $self->renameColumnsAfterAggregation($table, $columnsToRenameAfterAggregation);
             });
         }
 
         $dataTable = $this->getAggregatedDataTableMap($dataTable, $columnsAggregationOperation);
 
         if (!$columnsRenamed) {
-            $columnsToRenameAfterAggregation = $this->getColumnsToRenameThatActuallyExistInTable($dataTable, $columnsToRenameAfterAggregation);
-            if (!empty($columnsToRenameAfterAggregation)) {
-                $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
-            }
+            $this->renameColumnsAfterAggregation($dataTable, $columnsToRenameAfterAggregation);
         }
 
         return $dataTable;
@@ -498,10 +492,12 @@ class ArchiveProcessor
     /**
      * Note: public only for use in closure in PHP 5.3.
      */
-    public function renameColumnsAfterAggregation(DataTable $table, $columnsToRenameAfterAggregation)
+    public function renameColumnsAfterAggregation(DataTable $table, $columnsToRenameAfterAggregation = null)
     {
+        $columnsToRename = $this->getColumnsToRenameThatActuallyExistInTable($table, $columnsToRenameAfterAggregation);
+
         foreach ($table->getRows() as $row) {
-            foreach ($columnsToRenameAfterAggregation as $oldName => $newName) {
+            foreach ($columnsToRename as $oldName => $newName) {
                 $row->renameColumn($oldName, $newName);
             }
 
