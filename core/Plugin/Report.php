@@ -193,7 +193,7 @@ class Report
      *
      * @var string|int
      */
-    protected $defaultSortColumn = '';
+    protected $defaultSortColumn = 'nb_visits';
 
     /**
      * @var array

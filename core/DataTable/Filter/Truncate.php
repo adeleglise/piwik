@@ -94,7 +94,7 @@ class Truncate extends BaseFilter
             return;
         }
 
-        $table->filter('Sort', array($this->columnToSortByBeforeTruncating, 'desc'));
+        $table->filter('Sort', array($this->columnToSortByBeforeTruncating, 'desc', $naturalSort = true, $recursiveSort = false));
 
         $rows   = array_values($table->getRows());
         $count  = $table->getRowsCount();

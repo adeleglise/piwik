@@ -21,8 +21,7 @@ use Piwik\Metrics;
  *
  * @api
  */
-class
-Sort extends BaseFilter
+class Sort extends BaseFilter
 {
     protected $columnToSort;
     protected $order;
@@ -36,7 +35,7 @@ Sort extends BaseFilter
      * @param bool $naturalSort Whether to use a natural sort or not (see {@link http://php.net/natsort}).
      * @param bool $recursiveSort Whether to sort all subtables or not.
      */
-    public function __construct($table, $columnToSort, $order = 'desc', $naturalSort = true, $recursiveSort = false)
+    public function __construct($table, $columnToSort, $order = 'desc', $naturalSort = true, $recursiveSort = true)
     {
         parent::__construct($table);
 
