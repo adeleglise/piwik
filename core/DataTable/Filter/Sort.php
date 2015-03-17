@@ -21,11 +21,14 @@ use Piwik\Metrics;
  *
  * @api
  */
-class
-Sort extends BaseFilter
+class Sort extends BaseFilter
 {
     protected $columnToSort;
     protected $order;
+    protected $sign;
+
+    const ORDER_DESC = 'desc';
+    const ORDER_ASC  = 'asc';
 
     /**
      * Constructor.
@@ -36,7 +39,7 @@ Sort extends BaseFilter
      * @param bool $naturalSort Whether to use a natural sort or not (see {@link http://php.net/natsort}).
      * @param bool $recursiveSort Whether to sort all subtables or not.
      */
-    public function __construct($table, $columnToSort, $order = 'desc', $naturalSort = true, $recursiveSort = false)
+    public function __construct($table, $columnToSort, $order = 'desc', $naturalSort = true, $recursiveSort = true)
     {
         parent::__construct($table);
 
@@ -68,79 +71,44 @@ Sort extends BaseFilter
     /**
      * Sorting method used for sorting numbers
      *
-     * @param Row $a
-     * @param Row $b
+     * @param array $rowA
+     * @param array $rowB
      * @return int
      */
     public function numberSort($rowA, $rowB)
     {
-        if (isset($rowA[0]) && isset($rowB[0])) {
-            if ($rowA[0] != $rowB[0] || !isset($rowA[1])) {
-                return $this->sign * ($rowA[0] < $rowB[0] ? -1 : 1);
-            } else {
-                return -1 * $this->sign * strnatcasecmp($rowA[1], $rowB[1]);
-            }
-        } elseif (!isset($rowB[0])) {
-            return -1;
-        } elseif (!isset($rowA[0])) {
-            return 1;
+        if ($rowA[0] != $rowB[0] || !isset($rowA[1])) {
+            return $this->sign * ($rowA[0] < $rowB[0] ? -1 : 1);
         }
 
-        return 0;
+        return -1 * $this->sign * strnatcasecmp($rowA[1], $rowB[1]);
     }
 
     /**
      * Sorting method used for sorting values natural
      *
-     * @param mixed $a
-     * @param mixed $b
+     * @param array $rowA
+     * @param array $rowB
      * @return int
      */
     function naturalSort($rowA, $rowB)
     {
-        $valA = $rowA[0];
-        $valB = $rowB[0];
-
-        return !isset($valA)
-        && !isset($valB)
-            ? 0
-            : (!isset($valA)
-                ? 1
-                : (!isset($valB)
-                    ? -1
-                    : $this->sign * strnatcasecmp(
-                        $valA,
-                        $valB
-                    )
-                )
-            );
+        return $this->sign * strnatcasecmp(
+            $rowA[0],
+            $rowB[0]
+        );
     }
 
     /**
      * Sorting method used for sorting values
      *
-     * @param mixed $a
-     * @param mixed $b
+     * @param array $rowA
+     * @param array $rowB
      * @return int
      */
     function sortString($rowA, $rowB)
     {
-        $valA = $rowA[0];
-        $valB = $rowB[0];
-
-        return !isset($valA)
-        && !isset($valB)
-            ? 0
-            : (!isset($valA)
-                ? 1
-                : (!isset($valB)
-                    ? -1
-                    : $this->sign *
-                    strcasecmp($valA,
-                        $valB
-                    )
-                )
-            );
+        return $this->sign * strcasecmp($rowA[0], $rowB[0]);
     }
 
     protected function getColumnValue(Row $row)
@@ -208,12 +176,11 @@ Sort extends BaseFilter
             return;
         }
 
-        $rows = $table->getRows();
-        if (count($rows) == 0) {
+        if (!$table->getRowsCount()) {
             return;
         }
 
-        $row = current($rows);
+        $row = $table->getFirstRow();
         if ($row === false) {
             return;
         }
@@ -258,10 +225,17 @@ Sort extends BaseFilter
 
         $rows = $table->getRowsWithoutSummaryRow();
 
+        $rowsToNotSort = array();
+
         // get column value and label only once for performance tweak
         $values = array();
         foreach ($rows as $key => $row) {
-            $values[$key] = array($this->getColumnValue($row), $row->getColumn('label'));
+            $value = $this->getColumnValue($row);
+            if (is_null($value)) {
+                $rowsToNotSort[] = $row;
+            } else {
+                $values[$key] = array($value, $row->getColumn('label'));
+            }
         }
 
         uasort($values, array($this, $functionCallback));
@@ -270,6 +244,11 @@ Sort extends BaseFilter
         foreach ($values as $key => $value) {
             $sortedRows[$key] = $rows[$key];
         }
+
+        foreach ($rowsToNotSort as $row) {
+            $sortedRows[] = $row;
+        }
+        unset($rowsToNotSort);
 
         $table->setRows(array_values($sortedRows));
 
