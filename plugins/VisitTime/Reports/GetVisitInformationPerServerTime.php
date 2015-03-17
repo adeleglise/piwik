@@ -17,7 +17,7 @@ class GetVisitInformationPerServerTime extends Base
 {
 
     protected $defaultSortColumn = '';
-    
+
     protected function init()
     {
         parent::init();
