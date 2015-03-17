@@ -26,6 +26,9 @@ class Sort extends BaseFilter
     protected $columnToSort;
     protected $order;
 
+    const ORDER_DESC = 'desc';
+    const ORDER_ASC  = 'asc';
+
     /**
      * Constructor.
      *
